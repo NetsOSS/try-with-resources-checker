@@ -107,8 +107,6 @@ public class TryWithCheckPlugin implements com.sun.source.util.Plugin {
                 Symbol sym = id.sym;
                 Type.ClassType type = (Type.ClassType) sym.asType();
                 List<String> allSuperTypes = getAllSuperTypes(type).stream().map(x -> x.toString()).collect(Collectors.toList());
-                long startPosition = sourcePositions.getStartPosition(currCompUnit, newClassTree);
-                long lineNumber = currCompUnit.getLineMap().getLineNumber(startPosition);
 
                 boolean isAutoClosable = allSuperTypes.contains(AutoCloseable.class.getCanonicalName());
                 boolean isZipStream = allSuperTypes.contains(ZipInputStream.class.getCanonicalName()) || allSuperTypes.contains(ZipOutputStream.class.getCanonicalName());
