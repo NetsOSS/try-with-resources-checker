@@ -1,0 +1,8 @@
+# ignore file
+
+/.idea
+/*.ipr
+/*.iml
+/*.iws
+/*~
+/target
