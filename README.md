@@ -16,6 +16,7 @@ Example usage:
             <arg>-processorpath</arg>
             <arg>${settings.localRepository}${file.separator}eu${file.separator}nets${file.separator}distribution${file.separator}try-with-resources-checker${file.separator}1-SNAPSHOT${file.separator}try-with-resources-checker-1-SNAPSHOT.jar</arg>
             <arg>-Xplugin:TryWithCheckPlugin</arg>
+            <!-- <arg>-Xplugin:TryWithCheckPluginHardline</arg> --><!-- Will give ERROR on compilation instead of warning -->
           </compilerArgs>
           <encoding>UTF-8</encoding>
           <source>1.8</source>

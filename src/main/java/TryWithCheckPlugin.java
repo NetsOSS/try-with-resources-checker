@@ -8,8 +8,10 @@ import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
 import javax.tools.Diagnostic;
+import java.io.File;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.ZipInputStream;
@@ -34,7 +36,7 @@ public class TryWithCheckPlugin implements com.sun.source.util.Plugin {
             public void finished(TaskEvent taskEvent) {
                 if (taskEvent.getKind().equals(TaskEvent.Kind.ANALYZE)) {
                     CompilationUnitTree compilationUnit = taskEvent.getCompilationUnit();
-                    new CodePatternTreeVisitor(javacTask.getTypes(), javacTask.getElements(), Trees.instance(javacTask)).scan(compilationUnit, null);
+                    new CodePatternTreeVisitor(javacTask.getTypes(), javacTask.getElements(), Trees.instance(javacTask), Diagnostic.Kind.MANDATORY_WARNING).scan(compilationUnit, null);
                 }
             }
         });
@@ -46,13 +48,15 @@ public class TryWithCheckPlugin implements com.sun.source.util.Plugin {
         private final Elements elements;
         private final Trees trees;
         private final SourcePositions sourcePositions;
+        private final Diagnostic.Kind diagnosticKind;
         private CompilationUnitTree currCompUnit;
         private String currMethodName;
 
-        public CodePatternTreeVisitor(Types types, Elements elements, Trees trees) {
+        public CodePatternTreeVisitor(Types types, Elements elements, Trees trees, Diagnostic.Kind diagnosticKind) {
             this.types = types;
             this.elements = elements;
             this.trees = trees;
+            this.diagnosticKind = diagnosticKind;
             this.sourcePositions = trees.getSourcePositions();
         }
 
@@ -110,8 +114,14 @@ public class TryWithCheckPlugin implements com.sun.source.util.Plugin {
 
                 boolean isAutoClosable = allSuperTypes.contains(AutoCloseable.class.getCanonicalName());
                 boolean isZipStream = allSuperTypes.contains(ZipInputStream.class.getCanonicalName()) || allSuperTypes.contains(ZipOutputStream.class.getCanonicalName());
-                if (!insideTryWith && isAutoClosable && isZipStream) {
-                    trees.printMessage(Diagnostic.Kind.MANDATORY_WARNING, "Use try-with-resources, offending class was " + type.toString(), newClassTree, currCompUnit);
+                boolean isTestCode = currCompUnit.getSourceFile().getName().contains(File.separator + "test" + File.separator);
+                if (!insideTryWith && !isTestCode && isAutoClosable && isZipStream) {
+
+                    trees.printMessage(diagnosticKind, "Use try-with-resources, offending class was " + type.toString(), newClassTree, currCompUnit);
+                    Set<Map.Entry<Object, Object>> entries = System.getProperties().entrySet();
+                    for (Map.Entry<Object, Object> entry : entries) {
+                        trees.printMessage(Diagnostic.Kind.MANDATORY_WARNING, entry.getKey() + " :: => " + entry.getValue(), newClassTree, currCompUnit);
+                    }
                 }
             }
             return super.visitNewClass(newClassTree, aVoid);
