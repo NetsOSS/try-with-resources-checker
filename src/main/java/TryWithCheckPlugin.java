@@ -11,7 +11,6 @@ import javax.tools.Diagnostic;
 import java.io.File;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.zip.ZipInputStream;
@@ -116,12 +115,7 @@ public class TryWithCheckPlugin implements com.sun.source.util.Plugin {
                 boolean isZipStream = allSuperTypes.contains(ZipInputStream.class.getCanonicalName()) || allSuperTypes.contains(ZipOutputStream.class.getCanonicalName());
                 boolean isTestCode = currCompUnit.getSourceFile().getName().contains(File.separator + "test" + File.separator);
                 if (!insideTryWith && !isTestCode && isAutoClosable && isZipStream) {
-
                     trees.printMessage(diagnosticKind, "Use try-with-resources, offending class was " + type.toString(), newClassTree, currCompUnit);
-                    Set<Map.Entry<Object, Object>> entries = System.getProperties().entrySet();
-                    for (Map.Entry<Object, Object> entry : entries) {
-                        trees.printMessage(Diagnostic.Kind.MANDATORY_WARNING, entry.getKey() + " :: => " + entry.getValue(), newClassTree, currCompUnit);
-                    }
                 }
             }
             return super.visitNewClass(newClassTree, aVoid);
