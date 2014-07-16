@@ -5,10 +5,9 @@ import com.sun.source.util.TaskListener;
 import com.sun.source.util.Trees;
 
 import javax.tools.Diagnostic;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
 
-public class TryWithCheckPluginHardline implements com.sun.source.util.Plugin {
+public class ExtraHardline implements com.sun.source.util.Plugin {
+
     @Override
     public String getName() {
         return this.getClass().getSimpleName();
@@ -26,8 +25,7 @@ public class TryWithCheckPluginHardline implements com.sun.source.util.Plugin {
                 if (taskEvent.getKind().equals(TaskEvent.Kind.ANALYZE)) {
                     CompilationUnitTree compilationUnit = taskEvent.getCompilationUnit();
                     TryWithCheckPlugin.OnMissingTryWithResourcesCallback callback = (allSuperTypes, isTestCode, type, trees, tree, cu) -> {
-                        boolean isZipStream = allSuperTypes.contains(ZipInputStream.class.getCanonicalName()) || allSuperTypes.contains(ZipOutputStream.class.getCanonicalName());
-                        if (isZipStream && !isTestCode) {
+                        if (!isTestCode) {
                             trees.printMessage(Diagnostic.Kind.ERROR, "Use try-with-resources, offending class was " + type.toString(), tree, cu);
                         }
                     };
@@ -35,5 +33,6 @@ public class TryWithCheckPluginHardline implements com.sun.source.util.Plugin {
                 }
             }
         });
+
     }
 }

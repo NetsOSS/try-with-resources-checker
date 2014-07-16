@@ -4,6 +4,7 @@ import com.sun.tools.javac.code.Symbol;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.tree.JCTree;
 
+import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.util.Elements;
 import javax.lang.model.util.Types;
@@ -35,10 +36,20 @@ public class TryWithCheckPlugin implements com.sun.source.util.Plugin {
             public void finished(TaskEvent taskEvent) {
                 if (taskEvent.getKind().equals(TaskEvent.Kind.ANALYZE)) {
                     CompilationUnitTree compilationUnit = taskEvent.getCompilationUnit();
-                    new CodePatternTreeVisitor(javacTask.getTypes(), javacTask.getElements(), Trees.instance(javacTask), Diagnostic.Kind.MANDATORY_WARNING).scan(compilationUnit, null);
+                    OnMissingTryWithResourcesCallback callback = (allSuperTypes, isTestCode, type, trees, tree, cu) -> {
+                        boolean isZipStream = allSuperTypes.contains(ZipInputStream.class.getCanonicalName()) || allSuperTypes.contains(ZipOutputStream.class.getCanonicalName());
+                        if (isZipStream && !isTestCode) {
+                            trees.printMessage(Diagnostic.Kind.WARNING, "Use try-with-resources, offending class was " + type.toString(), tree, cu);
+                        }
+                    };
+                    new CodePatternTreeVisitor(javacTask.getTypes(), javacTask.getElements(), Trees.instance(javacTask), callback).scan(compilationUnit, null);
                 }
             }
         });
+    }
+
+    public static interface OnMissingTryWithResourcesCallback {
+        void call(List<String> allSuperTypes, boolean isTestCode, DeclaredType type, Trees trees, NewClassTree tree, CompilationUnitTree cu);
     }
 
     public static class CodePatternTreeVisitor extends TreePathScanner<Void, Void> {
@@ -47,15 +58,15 @@ public class TryWithCheckPlugin implements com.sun.source.util.Plugin {
         private final Elements elements;
         private final Trees trees;
         private final SourcePositions sourcePositions;
-        private final Diagnostic.Kind diagnosticKind;
         private CompilationUnitTree currCompUnit;
         private String currMethodName;
+        private final OnMissingTryWithResourcesCallback callback;
 
-        public CodePatternTreeVisitor(Types types, Elements elements, Trees trees, Diagnostic.Kind diagnosticKind) {
+        public CodePatternTreeVisitor(Types types, Elements elements, Trees trees, OnMissingTryWithResourcesCallback callback) {
             this.types = types;
             this.elements = elements;
             this.trees = trees;
-            this.diagnosticKind = diagnosticKind;
+            this.callback = callback;
             this.sourcePositions = trees.getSourcePositions();
         }
 
@@ -112,10 +123,13 @@ public class TryWithCheckPlugin implements com.sun.source.util.Plugin {
                 List<String> allSuperTypes = getAllSuperTypes(type).stream().map(x -> x.toString()).collect(Collectors.toList());
 
                 boolean isAutoClosable = allSuperTypes.contains(AutoCloseable.class.getCanonicalName());
-                boolean isZipStream = allSuperTypes.contains(ZipInputStream.class.getCanonicalName()) || allSuperTypes.contains(ZipOutputStream.class.getCanonicalName());
-                boolean isTestCode = currCompUnit.getSourceFile().getName().contains(File.separator + "test" + File.separator);
+                boolean isTestCode = currCompUnit.getSourceFile().getName().contains(String.join(File.separator, "src", "main", "test", "java"));
+                /*boolean isZipStream = allSuperTypes.contains(ZipInputStream.class.getCanonicalName()) || allSuperTypes.contains(ZipOutputStream.class.getCanonicalName());
                 if (!insideTryWith && !isTestCode && isAutoClosable && isZipStream) {
                     trees.printMessage(diagnosticKind, "Use try-with-resources, offending class was " + type.toString(), newClassTree, currCompUnit);
+                }*/
+                if (isAutoClosable) {
+                    callback.call(allSuperTypes, isTestCode, type, trees, newClassTree, currCompUnit);
                 }
             }
             return super.visitNewClass(newClassTree, aVoid);
