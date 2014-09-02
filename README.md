@@ -19,6 +19,7 @@ Add compiler configuration (requires Oracle javac 8):
             <arg>${settings.localRepository}${file.separator}eu${file.separator}nets${file.separator}distribution${file.separator}try-with-resources-checker${file.separator}1-SNAPSHOT${file.separator}try-with-resources-checker-1-SNAPSHOT.jar</arg>
             <arg>-Xplugin:TryWithCheckPluginHardline</arg>
             <!-- <arg>-Xplugin:TryWithCheckPlugin</arg> --><!-- Will give Warning on compilation instead of Error -->
+            <!-- <arg>-Xplugin:SystemErrOutUsageCheck</arg> --><!-- Will give Error on usage of System.(err|out) -->
           </compilerArgs>
           <encoding>UTF-8</encoding>
           <source>1.8</source>

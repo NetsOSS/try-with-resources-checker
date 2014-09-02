@@ -2,3 +2,4 @@ ReturnNullCheck
 TryWithCheckPlugin
 TryWithCheckPluginHardline
 ExtraHardline
+SystemErrOutUsageCheck
